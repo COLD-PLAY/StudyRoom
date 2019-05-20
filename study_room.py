@@ -10,6 +10,9 @@ from email.mime.text import MIMEText
 from email.header import Header
 
 __author__ = "liaozhou"
+now = time.localtime()
+y_m_d = time.strftime("%Y-%m-", now) + str(now.tm_mday+1)
+start_time, end_time, room = y_m_d + "+08:30", y_m_d + "+22:00", 517
 
 # 说明: 5楼研修室只有字典中的三个且dev_id无规律，
 # 1楼到4楼的都是门牌号增1，其dev_id增4
@@ -27,20 +30,25 @@ def GetDevId(room):
 	floor = room // 100
 	return room_dev_id[floor][room] if floor == 5 else room_dev_id[floor] + (room-(floor*100+1))*4
 
-start_time, end_time, room = "2019-05-19+21:10", "2019-05-19+22:00", 209
-
 url_login = "https://idas.uestc.edu.cn/authserver/login?service=http://reservelib.uestc.edu.cn/loginall.aspx?page="
 url = "http://reservelib.uestc.edu.cn/ClientWeb/pro/ajax/reserve.aspx?\
 &dev_id=%s&start=%s&end=%s&act=set_resv" % (GetDevId(room), start_time, end_time)
 
 sid, pw, mail = "2015060103012", "101387", "liaozhou98@qq.com"
 
-def notify(err_code):
-	msg = MIMEText('请手动预约，错误代码:%s' % err_code, 'plain', 'utf-8')
-	msg['From'] = Header('米西狮子','utf-8')
-	msg['To'] = Header('用户','utf-8')
-	subject = '预约研修室出现错误'
-	msg['Subject'] = Header(subject,'utf-8') 
+def notify(err_code=None):
+	if err_code:
+		msg = MIMEText('请手动预约，错误代码:%s' % err_code, 'plain', 'utf-8')
+		msg['From'] = Header('米西狮子','utf-8')
+		msg['To'] = Header(sid,'utf-8')
+		subject = '预约研修室出现错误'
+		msg['Subject'] = Header(subject,'utf-8')
+	else:
+		msg = MIMEText('已为您成功预定！', 'plain', 'utf-8')
+		msg['From'] = Header('米西狮子','utf-8')
+		msg['To'] = Header(sid,'utf-8')
+		subject = '预约研修室成功'
+		msg['Subject'] = Header(subject,'utf-8')
 
 	sender = 'liaozhou98@qq.com'
 
@@ -56,9 +64,9 @@ def notify(err_code):
 	smtp.sendmail(sender,receiver,msg.as_string())
 	smtp.quit()
 
-def func():
+def reserve(username):
 	SERVICE_ARGS = ['--load-images=false', '--disk-cache=true']
-	driver = webdriver.PhantomJS(service_args=SERVICE_ARGS)
+	driver = webdriver.PhantomJS(service_args=SERVICE_ARGS, service_log_path="D:/watchlog.log")
 	wait = WebDriverWait(driver, 10)
 
 	driver.get(url_login)
@@ -74,14 +82,13 @@ def func():
 
 	driver.get(url)
 	r = json.loads(driver.find_element_by_tag_name("pre").text)["msg"]
-
+	print(r)
 	if r != "操作成功！":
 		notify(r)
+	else:
+		notify()
 
 	driver.close()
 
 if __name__ == '__main__':
-	s = time.time()
-	func()
-	e = time.time()
-	print(e-s)
+	reserve(sid)
