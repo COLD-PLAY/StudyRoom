@@ -92,3 +92,4 @@ def reserve(username):
 
 if __name__ == '__main__':
 	reserve(sid)
+	# 结束，毕业了暂时没法进去抢了
